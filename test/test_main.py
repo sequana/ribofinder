@@ -19,25 +19,25 @@ def test_standalone_script():
     directory = tempfile.TemporaryDirectory()
     import sequana_pipelines.ribofinder.main as m
     sys.argv = ["test", "--input-directory", sharedir, 
-            "--working-directory", directory.name, "--force"]
+            "--working-directory", directory.name, "--force", "--rRNA-file", sharedir+"feature.fasta"]
     m.main()
 
 def test_full():
-
     with tempfile.TemporaryDirectory() as directory:
-        print(directory)
         wk = directory
 
         cmd = "sequana_pipelines_ribofinder --input-directory {} "
-        cmd += "--working-directory {}  --force"
-        cmd = cmd.format(sharedir, wk)
+        cmd += "--working-directory {}  --force --rRNA-file {}/feature.fasta"
+        cmd = cmd.format(sharedir, wk, sharedir)
+        print(cmd)
         subprocess.call(cmd.split())
 
         stat = subprocess.call("sh ribofinder.sh".split(), cwd=wk)
 
-        assert os.path.exists(wk + "/multi_summary.html")
+        assert os.path.exists(wk + "/summary.html")
 
 def test_version():
     cmd = "sequana_pipelines_ribofinder --version"
     subprocess.call(cmd.split())
+
 

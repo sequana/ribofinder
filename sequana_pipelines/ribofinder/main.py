@@ -78,7 +78,7 @@ def main(args=None):
     from sequana_pipetools.options import before_pipeline
     before_pipeline(NAME)
 
-    # option parsing including common epilog
+    # option parsing including common epil and og
     options = Options(NAME, epilog=sequana_epilog).parse_args(args[1:])
 
 
@@ -109,14 +109,25 @@ def main(args=None):
         if options.reference_file:
             cfg.general.reference_file = os.path.abspath(options.reference_file)
 
+
+        if options.reference_file is None and options.rRNA_file is None:
+            logger.error("You must provide a rRNA file or a reference_file")
+            sys.exit(1)
+
+        if options.reference_file:
+            logger.info("checking your input GFF file and rRNA feature if provided")
+            if options.genbank_file:
+                from sequana.genbank import GenBank
+                gbk = GenBank(options.genbank_file)
+            if options.genbank_file is None and options.gff_file is None:
+                logger.error("You must provide an annotation (genbank-file or gff-file)")
+                sys.exit(1)
+
         # ----------------------------------------------------  others
         cfg.input_directory = os.path.abspath(options.input_directory)
         cfg.input_pattern = options.input_pattern
         cfg.input_readtag = options.input_readtag
 
-        # SANITY CHECKS
-        # -------------------------------------- do we find rRNA feature in the GFF ?
-        logger.info("checking your input GFF file and rRNA feature if provided")
 
 
     # finalise the command and save it; copy the snakemake. update the config

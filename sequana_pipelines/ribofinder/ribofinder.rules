@@ -31,8 +31,8 @@ exec(open(sequana.modules["dynamic_unpigz"], "r").read())
 
 __data__input = manager.getrawdata()
 
-rule all:
-    input: "multiqc/multiqc_report.html"
+rule pipeline:
+    input: "requirements.txt",".sequana/rulegraph.svg",    "multiqc/multiqc_report.html"
 
 
 __fasta_file__ = config['general']['reference_file']
@@ -40,14 +40,11 @@ if config['general']['genbank_file']:
     __annot_file__   = config['general']['genbank_file']
 elif config['general']['gff_file']:
     __annot_file__   = config['general']['gff_file']
+elif config['general']['rRNA_file']:
+    __annot_file__   = config['general']['rRNA_file']
 
 __prefix_name__ = "indexing/features"
 
-
-# check existence of fasta and annotation file before starting;
-for this in [__fasta_file__, __annot_file__]:
-    if os.path.exists(this) is False:
-        raise IOError("File {} not found".format(__fasta_file__))
 
 if manager.config.general.rRNA_file:
     __bowtie1_index_rna__fasta = config["general"]["rRNA_file"]
@@ -56,6 +53,9 @@ if manager.config.general.rRNA_file:
 elif __annot_file__.endswith(".gbk"):
     # This is for genbank input
     __build_feature_fasta__output = "build_feature_fasta/feature.fasta"
+    for this in [__fasta_file__, __annot_file__]:
+        if os.path.exists(this) is False:
+            raise IOError("File {} not found".format(__fasta_file__))
     rule build_feature_fasta:
         input:
             fasta = __fasta_file__,
@@ -69,6 +69,9 @@ elif __annot_file__.endswith(".gbk"):
                 fout.write(sequence)
     __bowtie1_index_rna__fasta = __build_feature_fasta__output
 elif __annot_file__.endswith(".gff") or __annot_file__.endswith(".gff3"):
+    for this in [__fasta_file__, __annot_file__]:
+        if os.path.exists(this) is False:
+            raise IOError("File {} not found".format(__fasta_file__))
     # extract rRNA feature from GFF and get corresponding fasta
     # and gff. if no match for rRNA, save empty fasta as AAAAAAAAAAA
     __build_feature_fasta__output = "build_feature_fasta/feature.fasta"
@@ -121,34 +124,21 @@ expected_output.extend(expand(__bowtie1_mapping_rna__sort, sample=manager.sample
 
 
 
-# Multiqc rule
 __multiqc__input = expected_output
-__multiqc__input_dir = "."
-__multiqc__logs = "multiqc/multiqc.log"
-__multiqc__output = config['multiqc']['output_directory'] + "/multiqc_report.html"
-if config['multiqc']['config_file']:
-    __multiqc__options = " -c " + config['multiqc']['config_file'] + " "+config['multiqc']['options']
-else :
-    __multiqc__options = config['multiqc']['options']
-__multiqc__output_dir = config['multiqc']['output_directory']
-
-final_output = []
-include: sm.modules["multiqc"]
-final_output.extend([__multiqc__output])
+__multiqc__output = "multiqc/multiqc_report.html"
+include: sm.modules["multiqc/2.0"]
 
 
 # Include rule graph for each sample
 __rulegraph__input = manager.snakefile
 __rulegraph__output = ".sequana/rulegraph.svg"
-__rulegraph__mapper = {"multiqc": "multiqc_report.html"}
+__rulegraph__mapper = {"multiqc": "multiqc/multiqc_report.html"}
 include: sm.modules['rulegraph']
-final_output.extend([__rulegraph__output])
 
 
 # Add Conda
 __conda__output = "requirements.txt"
 include: sm.modules['conda']   # Create requirements.txt(dependencies)
-final_output.extend([__conda__output])
 
 
 
@@ -163,6 +153,21 @@ onsuccess:
     logger.level = "INFO"
     manager.teardown(plot_stats=False)
     manager.clean_multiqc(__multiqc__output)
+
+
+    from sequana.modules_report.summary import SummaryModule2
+    from sequana_pipelines import ribofinder
+    data = {
+            "name": manager.name,
+            "stats": "stats.txt", 
+            "rulegraph": __rulegraph__output,
+            "pipeline_version": ribofinder.version
+            }
+    s = SummaryModule2(data, intro="""
+	Please see ribosomal rates in the <a href="multiqc/multiqc_report.html">multiqc report</a> 
+    """)
+    shell("rm -rf rulegraph")
+
 
     shell("chmod -R g+w .")
     shell("rm -rf rulegraph")

@@ -1,2 +1,2 @@
-bowtie1
-;ultiqc
+bowtie
+multiqc

@@ -36,9 +36,9 @@ general:
     aligner: bowtie1 
     rRNA_file: ""
     rRNA_feature: rRNA
-    genbank_file: "annotation.gbk"
+    genbank_file: 
     gff_file:
-    reference_file: "lepto_biflexa.fa"
+    reference_file: 
 
 
 
