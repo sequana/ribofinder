@@ -90,7 +90,7 @@ def main(args=None):
     # create the beginning of the command and the working directory
     manager.setup()
     from sequana import logger
-    logger.level = options.level
+    logger.setLevel(options.level)
 
     # fill the config file with input parameters
     if options.from_project is None:

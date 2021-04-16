@@ -150,7 +150,7 @@ onsuccess:
     from sequana import logger
     from sequana.pipelines_common import get_pipeline_location as getpath
 
-    logger.level = "INFO"
+    logger.setLevel("INFO")
     manager.teardown(plot_stats=False)
     manager.clean_multiqc(__multiqc__output)
 
