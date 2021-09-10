@@ -3,10 +3,10 @@ import os
 import tempfile
 import subprocess
 import sys
-from sequana.pipelines_common import get_pipeline_location as getpath
 
-sharedir = getpath('ribofinder')
+from . import test_dir
 
+sharedir = f"{test_dir}/data"
 
 def test_standalone_subprocess():
     directory = tempfile.TemporaryDirectory()
@@ -22,6 +22,7 @@ def test_standalone_script():
             "--working-directory", directory.name, "--force", "--rRNA-file", sharedir+"feature.fasta"]
     m.main()
 
+
 def test_full():
     with tempfile.TemporaryDirectory() as directory:
         wk = directory
@@ -35,6 +36,7 @@ def test_full():
         stat = subprocess.call("sh ribofinder.sh".split(), cwd=wk)
 
         assert os.path.exists(wk + "/summary.html")
+
 
 def test_version():
     cmd = "sequana_pipelines_ribofinder --version"

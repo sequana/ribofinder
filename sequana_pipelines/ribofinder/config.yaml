@@ -42,15 +42,6 @@ general:
 
 
 
-######################
-# if files are required for a pipeline and are within sequana or should
-# be downloaded before the pipeline provide them in this section
-# Note that sequana and url fields are followed by itemised files or links
-# using the front dashes
-requirements: ''
-
-
-
 #############################################################################
 # bowtie1_mapping_rna used to align reads against ribosomal RNA
 #
@@ -79,8 +70,9 @@ bowtie1_mapping_rna:
 # - config_file: by default, we use sequana RNA-seq multiqc_config file. 
 #       If you want your own multiqc, fill this entry
 multiqc:
-    options: -f -x *_init_* -x *left_kept_reads* -x *fastqc_samples* -e htseq -e slamdunk
+    options: -f 
     output_directory: multiqc
+    input_directory: "."
     config_file: multiqc_config.yaml
 
 

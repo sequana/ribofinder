@@ -1,11 +1,29 @@
+# -*- coding: utf-8 -*-
+#
+#  This file is part of Sequana software
+#
+#  Copyright (c) 2016 - Sequana Development Team
+#
+#  File author(s):
+#      Thomas Cokelaer <thomas.cokelaer@pasteur.fr>
+#
+#  Distributed under the terms of the 3-clause BSD license.
+#  The full license is in the LICENSE file, distributed with this software.
+#
+#  website: https://github.com/sequana/sequana
+#  documentation: http://sequana.readthedocs.io
+#
+##############################################################################
 import sys
 import os
 import argparse
 import shutil
 
 from sequana_pipetools.options import *
+from sequana_pipetools.options import before_pipeline
 from sequana_pipetools.misc import Colors
 from sequana_pipetools.info import sequana_epilog, sequana_prolog
+from sequana_pipetools import SequanaManager
 
 col = Colors()
 
@@ -54,6 +72,8 @@ class Options(argparse.ArgumentParser):
             help="""The required referenceto fetch features into""")
 
 
+        self.add_argument("--run", default=False, action="store_true",
+            help="execute the pipeline directly")
 
     def parse_args(self, *args):
         args_list = list(*args)
@@ -75,22 +95,16 @@ def main(args=None):
         args = sys.argv
 
     # whatever needs to be called by all pipeline before the options parsing
-    from sequana_pipetools.options import before_pipeline
     before_pipeline(NAME)
 
-    # option parsing including common epil and og
+    # option parsing including common epilog
     options = Options(NAME, epilog=sequana_epilog).parse_args(args[1:])
-
-
-    from sequana.pipelines_common import SequanaManager
 
     # the real stuff is here
     manager = SequanaManager(options, NAME)
 
     # create the beginning of the command and the working directory
     manager.setup()
-    from sequana import logger
-    logger.setLevel(options.level)
 
     # fill the config file with input parameters
     if options.from_project is None:
@@ -109,7 +123,6 @@ def main(args=None):
         if options.reference_file:
             cfg.general.reference_file = os.path.abspath(options.reference_file)
 
-
         if options.reference_file is None and options.rRNA_file is None:
             logger.error("You must provide a rRNA file or a reference_file")
             sys.exit(1)
@@ -124,15 +137,17 @@ def main(args=None):
                 sys.exit(1)
 
         # ----------------------------------------------------  others
-        cfg.input_directory = os.path.abspath(options.input_directory)
         cfg.input_pattern = options.input_pattern
+        cfg.input_directory = os.path.abspath(options.input_directory)
         cfg.input_readtag = options.input_readtag
 
-
-
+        manager.exists(cfg.input_directory)
     # finalise the command and save it; copy the snakemake. update the config
     # file and save it.
     manager.teardown()
+
+    if options.run:
+        subprocess.Popen(["sh", '{}.sh'.format(NAME)], cwd=options.workdir)
 
 if __name__ == "__main__":
     main()

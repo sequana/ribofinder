@@ -41,25 +41,6 @@ mapping:
                 required: True
                 range: { min: 1 }
 
-    'coverage':
-        type: map
-        mapping:
-            "do":
-                type: bool
-            "binSize":
-                type: int
-            "genomeSize":
-                type: int
-            "extendReads":
-                type: int
-            "minFragmentLength":
-                type: int
-            "maxFragmentLength":
-                type: int
-            "threads":
-                type: int
-                required: True
-                range: { min: 1, max: 8 }
 
     'bowtie1_mapping_rna':
         type: map
@@ -72,3 +53,20 @@ mapping:
                 type: int
                 required: True
                 range: { min: 1}
+
+    "multiqc":
+        type: map
+        mapping:
+            "do":
+              type: bool
+            "options":
+                type: str
+            "config_file":
+                type: str
+            "input_directory":
+                type: str
+            "output_directory":
+                type: str
+
+
+
