@@ -6,8 +6,8 @@ from setuptools.command.install import install
 import subprocess
 
 _MAJOR               = 0
-_MINOR               = 9
-_MICRO               = 3
+_MINOR               = 10
+_MICRO               = 0
 version              = '%d.%d.%d' % (_MAJOR, _MINOR, _MICRO)
 release              = '%d.%d' % (_MAJOR, _MINOR)
 
@@ -70,8 +70,7 @@ setup(
     classifiers      = metainfo['classifiers'],
 
     # package installation
-    packages = ["sequana_pipelines.ribofinder",
-        'sequana_pipelines.ribofinder.data' ],
+    packages = ["sequana_pipelines.ribofinder"],
 
     install_requires = open("requirements.txt").read(),
 
@@ -85,7 +84,6 @@ setup(
     zip_safe=False,
 
     entry_points = {'console_scripts':[
-        'sequana_pipelines_ribofinder=sequana_pipelines.ribofinder.main:main',
         'sequana_ribofinder=sequana_pipelines.ribofinder.main:main']
     }
 

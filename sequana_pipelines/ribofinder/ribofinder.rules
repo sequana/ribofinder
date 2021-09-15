@@ -140,7 +140,6 @@ rule bowtie1_mapping_rna:
     output:
         bam="{sample}/{sample}.bam",
         sort="{sample}/{sample}.sorted.bam",
-        index="{sample}/{sample}.sorted.bam.bai"
     log:
         "{sample}/bowtie1.log"
     params:
@@ -149,6 +148,16 @@ rule bowtie1_mapping_rna:
     wrapper:
         "main/wrappers/bowtie1/align"
 
+
+rule bam_indexing:
+    input:
+        "{sample}/{sample}.sorted.bam"
+    output:
+        "{sample}/{sample}.sorted.bam.bai"
+    shell:
+        """
+        bamtools index -in {input}
+        """
 
 __multiqc__input__ = expand("{sample}/{sample}.sorted.bam.bai", sample=manager.samples)
 
