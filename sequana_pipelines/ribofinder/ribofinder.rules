@@ -160,7 +160,7 @@ rule bam_indexing:
 
 
 rule rulegraph:
-    input: manager.snakefile
+    input: str(manager.snakefile)
     output:
         svg = ".sequana/rulegraph.svg"
     params:
