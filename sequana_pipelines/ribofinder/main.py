@@ -24,6 +24,7 @@ from sequana_pipetools.options import before_pipeline
 from sequana_pipetools.misc import Colors
 from sequana_pipetools.info import sequana_epilog, sequana_prolog
 from sequana_pipetools import SequanaManager
+from sequana import logger
 
 col = Colors()
 
@@ -133,8 +134,8 @@ def main(args=None):
                 from sequana.genbank import GenBank
                 gbk = GenBank(options.genbank_file)
             if options.genbank_file is None and options.gff_file is None:
-                logger.error("You must provide an annotation (genbank-file or gff-file)")
-                sys.exit(1)
+                logger.error("Most probably you want to provide an annotation (genbank-file or gff-file)")
+                sys.exit(0)
 
         # ----------------------------------------------------  others
         cfg.input_pattern = options.input_pattern

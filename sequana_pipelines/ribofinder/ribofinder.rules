@@ -35,8 +35,9 @@ manager.setup(globals(), mode="warning")
 __data__input = manager.getrawdata()
 
 rule pipeline:
-    input: ".sequana/rulegraph.svg", "multiqc/multiqc_report.html"
-
+    input: 
+        ".sequana/rulegraph.svg",
+        expand("{sample}/{sample}.sorted.bam.bai", sample=manager.samples)
 
 
 
@@ -131,15 +132,13 @@ rule unpigz:
         """
 
 
-
-
 rule bowtie1_mapping_rna:
     input:
         fastq=__unpigz_R1__output,
         index=__bowtie1_reference__
     output:
-        bam="{sample}/{sample}.bam",
-        sort="{sample}/{sample}.sorted.bam",
+        bam="{sample}/{sample}bam",
+        sorted="{sample}/{sample}.sorted.bam"
     log:
         "{sample}/bowtie1.log"
     params:
@@ -159,26 +158,6 @@ rule bam_indexing:
         bamtools index -in {input}
         """
 
-__multiqc__input__ = expand("{sample}/{sample}.sorted.bam.bai", sample=manager.samples)
-
-__multiqc__output = "multiqc/multiqc_report.html"
-expected_output.extend([__multiqc__output])
-
-rule multiqc:
-       input:
-            __multiqc__input__
-       output:
-           __multiqc__output
-       params:
-           options=config['multiqc']['options'],
-           input_directory=config['multiqc']['input_directory'],
-           config_file=config['multiqc']['config_file'],
-           modules=""
-       log:
-           "multiqc/multiqc.log"
-       wrapper:
-           "main/wrappers/multiqc"
-
 
 rule rulegraph:
     input: manager.snakefile
@@ -192,8 +171,6 @@ rule rulegraph:
 
 
 
-
-
 # Those rules takes a couple of seconds so no need for a cluster
 localrules:  rulegraph
 
@@ -202,8 +179,7 @@ onsuccess:
     from sequana import logger
 
     logger.setLevel("INFO")
-    manager.teardown(plot_stats=False)
-    manager.clean_multiqc(__multiqc__output)
+    manager.teardown()
 
 
     from sequana.modules_report.summary import SummaryModule2
@@ -215,7 +191,7 @@ onsuccess:
             "pipeline_version": ribofinder.version
             }
 
-    HTML = """<p>Please see the ribosomal rates here below or from the <a href="multiqc/multiqc_report.html">multiqc report</a></p>"""
+    HTML = "<h2>Summary</h2><p>Please see the ribosomal rates here below</p>"""
 
     from sequana.multiqc.plots import Bowtie1Reader
     if os.path.exists("multiqc/multiqc_report_data/multiqc_bowtie1.txt"):
@@ -223,6 +199,17 @@ onsuccess:
         fig = br.plot_bar(html_code=True)
         from plotly import offline
         HTML += offline.plot(fig, output_type="div", include_plotlyjs=True)
+
+    # Now the final report. add the original command in the HTML report
+    try:
+        command = ""
+        with open(".sequana/info.txt", "r") as fin:
+            for line in fin:
+                if not line.startswith("#"):
+                    command += line
+        HTML += f"<h2>Command used</h2>{command}"
+    except Exception:
+        pass
 
     s = SummaryModule2(data, intro=HTML)
 

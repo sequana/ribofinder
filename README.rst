@@ -84,7 +84,8 @@ Changelog
 ========= ====================================================================
 Version   Description
 ========= ====================================================================
-0.9.4     * Update to use sequana-wrappers
+0.10.0    * Update to use sequana-wrappers. Remove multiqc. summary.html 
+            is self-content
 0.9.3     * fix logger
 0.9.2     **First release.**
 ========= ====================================================================
