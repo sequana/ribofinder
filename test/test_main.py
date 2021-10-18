@@ -23,20 +23,23 @@ def test_standalone_script():
     m.main()
 
 
-def test_full():
+def test_full_rRNA_file():
     with tempfile.TemporaryDirectory() as directory:
         wk = directory
-
-        cmd = "sequana_ribofinder --input-directory {} "
-        cmd += "--working-directory {}  --force --rRNA-file {}/feature.fasta"
-        cmd = cmd.format(sharedir, wk, sharedir)
-        print(cmd)
+        cmd = f"sequana_ribofinder --input-directory {sharedir} "
+        cmd += f"--working-directory {wk}  --force --rRNA-file {sharedir}/feature.fasta"
         subprocess.call(cmd.split())
-
         stat = subprocess.call("sh ribofinder.sh".split(), cwd=wk)
-
         assert os.path.exists(wk + "/summary.html")
 
+def test_full_rRNA_extract():
+    with tempfile.TemporaryDirectory() as directory:
+        wk = directory
+        cmd = f"sequana_ribofinder --input-directory {sharedir} "
+        cmd += f"--working-directory {wk}  --force --reference-file {sharedir}/Lepto.fa --gff-file {sharedir}/Lepto.gff"
+        subprocess.call(cmd.split())
+        stat = subprocess.call("sh ribofinder.sh".split(), cwd=wk)
+        assert os.path.exists(wk + "/summary.html")
 
 def test_version():
     cmd = "sequana_ribofinder --version"

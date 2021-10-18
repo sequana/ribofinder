@@ -37,10 +37,9 @@ __data__input = manager.getrawdata()
 rule pipeline:
     input: 
         ".sequana/rulegraph.svg",
-        expand("{sample}/{sample}.sorted.bam.bai", sample=manager.samples)
+        "multiqc/multiqc_report.html"
 
-
-
+__fasta_file__ = config['general']['reference_file']
 if config['general']['genbank_file']:
     __annot_file__   = config['general']['genbank_file']
 elif config['general']['gff_file']:
@@ -111,36 +110,36 @@ rule bowtie1_indexing:
         "main/wrappers/bowtie1/build"
 
 
-__unpigz_R1__output = manager.getname("cutadapt", "_R1_.cutadapt.fastq")
-__unpigz__output = [__unpigz_R1__output]
+
 """With paired data, alignement on rRNA leads to 0% alignment if we use R1 and
 R2. If we use R1 only, the percentage is >0. First reason is that reads are not
 trimmed properly. In truth, bowtie2 supports local alignments which means it can
 soft-clip non-matching (=adapter) content while still align the local part of
 the read that matches the reference. With Bowtie1 the read will probably go
-unaligned due to the many mismatches. So we do not include R2 from version
-v0.9.14.
+unaligned due to the many mismatches. So we do not include R2.
 """
 
 rule unpigz:
-    input: __data__input
-    output: temp(__unpigz_R1__output)
+    input: manager.getrawdata()
+    output: temp("{sample}/unpigz/{sample}.fastq")
     threads: 4
     shell:
         """
-        unpigz -p {threads} -fk --stdout {input} > {output}
+        unpigz -p {threads} -fk --stdout {input[0]} > {output}
         """
 
 
+# ========================================================== Bowtie1 indexing
+#
 rule bowtie1_mapping_rna:
     input:
-        fastq=__unpigz_R1__output,
+        fastq=temp("{sample}/unpigz/{sample}.fastq"),
         index=__bowtie1_reference__
     output:
-        bam="{sample}/{sample}bam",
-        sorted="{sample}/{sample}.sorted.bam"
+        bam="{sample}/bowtie1/{sample}.bam",
+        sorted="{sample}/bowtie1/{sample}.sorted.bam"
     log:
-        "{sample}/bowtie1.log"
+        "{sample}/bowtie1/bowtie1.log"
     params:
         options=""
     threads: config['bowtie1_mapping_rna']['threads']
@@ -148,26 +147,28 @@ rule bowtie1_mapping_rna:
         "main/wrappers/bowtie1/align"
 
 
+# ========================================================== BAM indexing
+#
 rule bam_indexing:
     input:
-        "{sample}/{sample}.sorted.bam"
+        "{sample}/bowtie1/{sample}.sorted.bam"
     output:
-        "{sample}/{sample}.sorted.bam.bai"
+        "{sample}/bowtie1/{sample}.sorted.bam.bai"
     shell:
         """
         bamtools index -in {input}
         """
 
 
-rule rulegraph:
-    input: str(manager.snakefile)
-    output:
-        svg = ".sequana/rulegraph.svg"
-    params:
-        mapper = {},
-        configname = "config.yaml"
-    wrapper:
-        "main/wrappers/rulegraph"
+# ========================================================== multiqc
+#
+sequana_multiqc_input = expand("{sample}/bowtie1/{sample}.sorted.bam.bai", sample=sorted(manager.samples))
+include: sm.modules["multiqc/2.0"]
+
+# ========================================================== rulegraph
+#
+sequana_rulegraph_mapper = {"multiqc": "../multiqc/multiqc_report.html"}
+include: sm.modules['rulegraph']
 
 
 
@@ -186,7 +187,6 @@ onsuccess:
     from sequana_pipelines import ribofinder
     data = {
             "name": manager.name,
-            "stats": "stats.txt", 
             "rulegraph": ".sequana/rulegraph.svg",
             "pipeline_version": ribofinder.version
             }

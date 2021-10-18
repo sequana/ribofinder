@@ -84,6 +84,7 @@ Changelog
 ========= ====================================================================
 Version   Description
 ========= ====================================================================
+0.10.1    * add additional test and fix bug in pipeline (regression bug)
 0.10.0    * Update to use sequana-wrappers. Remove multiqc. summary.html 
             is self-content
 0.9.3     * fix logger

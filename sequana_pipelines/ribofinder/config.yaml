@@ -7,7 +7,7 @@
 # If input_directory provided, use it otherwise if input_pattern provided,
 # use it, otherwise use input_samples.
 # ============================================================================
-input_directory: "."
+input_directory: /home/cokelaer/Work/github/sequana_pipelines/ribofinder/test/data
 input_readtag: _R[12]_
 input_pattern: '*fastq.gz'
 # =========================================== Sections for the users
@@ -33,12 +33,12 @@ input_pattern: '*fastq.gz'
 #   rRNA from the annotation, identifiy start/end and create fasta file on the
 #   fly. You may simply provide an input fasta file with rRNA if you have one.
 general:
-    aligner: bowtie1 
-    rRNA_file: ""
+    aligner: bowtie1
+    rRNA_file: ''
     rRNA_feature: rRNA
-    genbank_file: 
-    gff_file:
-    reference_file: 
+    genbank_file: ''
+    gff_file: /home/cokelaer/Work/github/sequana_pipelines/ribofinder/test/data/Lepto.gff
+    reference_file: /home/cokelaer/Work/github/sequana_pipelines/ribofinder/test/data/Lepto.fa
 
 
 
@@ -70,9 +70,9 @@ bowtie1_mapping_rna:
 # - config_file: by default, we use sequana RNA-seq multiqc_config file. 
 #       If you want your own multiqc, fill this entry
 multiqc:
-    options: -f 
-    output_directory: multiqc
-    input_directory: "."
+    options: -f
+    input_directory: .
+    modules: ""
     config_file: multiqc_config.yaml
 
 
