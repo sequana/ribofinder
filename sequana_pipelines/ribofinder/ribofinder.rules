@@ -139,7 +139,7 @@ rule bowtie1_mapping_rna:
         bam="{sample}/bowtie1/{sample}.bam",
         sorted="{sample}/bowtie1/{sample}.sorted.bam"
     log:
-        "{sample}/bowtie1/bowtie1.log"
+        "{sample}/bowtie1/{sample}.log"
     params:
         options=""
     threads: config['bowtie1_mapping_rna']['threads']

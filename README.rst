@@ -7,7 +7,7 @@
     :alt: JOSS (journal of open source software) DOI
 
 .. image:: https://github.com/sequana/ribofinder/actions/workflows/main.yml/badge.svg
-   :target: https://github.com/sequana/ribofinder/actions/workflows    
+   :target: https://github.com/sequana/ribofinder/actions/workflows
 
 
 This is is the **ribofinder** pipeline from the `Sequana <https://sequana.readthedocs.org>`_ project
@@ -84,6 +84,7 @@ Changelog
 ========= ====================================================================
 Version   Description
 ========= ====================================================================
+0.10.2    * Fix the bowtie1 rule (all samples were named bowtie1)
 0.10.1    * add additional test and fix bug in pipeline (regression bug)
 0.10.0    * Update to use sequana-wrappers. Remove multiqc. summary.html 
             is self-content
