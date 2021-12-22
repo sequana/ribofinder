@@ -67,6 +67,8 @@ mapping:
                 type: str
             "output_directory":
                 type: str
+            "modules":
+                type: str
 
 
 

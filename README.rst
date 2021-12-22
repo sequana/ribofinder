@@ -34,15 +34,17 @@ Usage
 ~~~~~
 
 
-This command will scan all files ending in .fastq.gz found in the local
-directory, create a directory called fastqc/ where a snakemake pipeline is
-launched automatically. Depending on the number of files and their sizes, the
+This pipeline scans Fastq.gz files found in the local
+directory and identify the ribosomal content.
+
+The following command create a directory called ribofinder/ where a snakemake pipeline can
+be launched. Depending on the number of files and their sizes, the
 process may be long::
 
     sequana_pipelines_ribofinder --help
-    sequana_pipelines_ribofinder --input-directory DATAPATH 
+    sequana_pipelines_ribofinder --input-directory DATAPATH --rRNA-file test.fasta
 
-This creates a directory with the pipeline and configuration file. You will then need 
+This creates a directory with the pipeline and configuration file. You will then need
 to execute the pipeline::
 
     cd ribofinder
@@ -61,6 +63,8 @@ Requirements
 This pipelines requires the following executable(s):
 
 - bowtie1
+- samtools
+- pigz
 
 .. image:: https://raw.githubusercontent.com/sequana/ribofinder/master/sequana_pipelines/ribofinder/dag.png
 
@@ -71,6 +75,13 @@ Details
 This pipeline runs **ribofinder** in parallel on the input fastq files. 
 A brief sequana summary report is also produced.
 
+You can have a local file with the ribosomal sequences::
+
+    sequana_ribofinder --input-directory . --rRNA-file ribo.fasta
+
+or use existing GFF and fasta files, extracting the ribosomal gene on the fly::
+
+    sequana_ribofinder --input-directory . --reference-file test.fasta --gff-file test.gff  --rRNA-feature rRNA
 
 Rules and configuration details
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
