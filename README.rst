@@ -41,8 +41,8 @@ The following command create a directory called ribofinder/ where a snakemake pi
 be launched. Depending on the number of files and their sizes, the
 process may be long::
 
-    sequana_pipelines_ribofinder --help
-    sequana_pipelines_ribofinder --input-directory DATAPATH --rRNA-file test.fasta
+    sequana_ribofinder --help
+    sequana_ribofinder --input-directory DATAPATH --rRNA-file test.fasta
 
 This creates a directory with the pipeline and configuration file. You will then need
 to execute the pipeline::
