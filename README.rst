@@ -33,27 +33,30 @@ Then, just install this package::
 Usage
 ~~~~~
 
+This pipeline scans input fastq.gz files found in the local
+directory and identify the proportion of ribosomal content.
 
-This pipeline scans Fastq.gz files found in the local
-directory and identify the ribosomal content.
+For help, please type::
 
-The following command create a directory called ribofinder/ where a snakemake pipeline can
-be launched. Depending on the number of files and their sizes, the
-process may be long::
+    sequana_ribofinder --help
 
-    sequana_pipelines_ribofinder --help
-    sequana_pipelines_ribofinder --input-directory DATAPATH --rRNA-file test.fasta
+The following command searches for input files in DATAPATH. Then, te user provide
+a list of rRNA sequences in FastA format in *test.fasta*. This command creates a directory 
+called ribofinder/ where a snakemake pipeline can
+be launched.
 
-This creates a directory with the pipeline and configuration file. You will then need
-to execute the pipeline::
+    sequana_ribofinder --input-directory DATAPATH --rRNA-file test.fasta
+
+You will then need to execute the pipeline::
 
     cd ribofinder
     sh ribofinder.sh  # for a local run
 
-This launch a snakemake pipeline. If you are familiar with snakemake, you can 
+This launch a snakemake pipeline. If you are familiar with snakemake, you can
 retrieve the pipeline itself and its configuration files and then execute the pipeline yourself with specific parameters::
 
-    snakemake -s ribofinder.rules -c config.yaml --cores 4 --stats stats.txt
+    snakemake -s ribofinder.rules -c config.yaml --cores 4 --wrapper-prefix git+file:////home/user/sequana_wrappers
+
 
 Or use `sequanix <https://sequana.readthedocs.io/en/master/sequanix.html>`_ interface.
 
@@ -68,20 +71,26 @@ This pipelines requires the following executable(s):
 
 .. image:: https://raw.githubusercontent.com/sequana/ribofinder/master/sequana_pipelines/ribofinder/dag.png
 
-
 Details
 ~~~~~~~~~
 
 This pipeline runs **ribofinder** in parallel on the input fastq files. 
 A brief sequana summary report is also produced.
 
-You can have a local file with the ribosomal sequences::
+You can start from the reference file and the GFF file. By defaultm we search for the feature called 
+rRNA::
+
+    sequana_ribofinder --input-directory . --reference-file genome.fasta --gff-file genome.gff
+
+If the default feature rRNA is not found, no error is raised for now. If you know the expected feature, 
+you can provide it::
+
+    sequana_ribofinder --input-directory . --reference-file genome.fasta --gff-file genome.gff --rRNA-feature gene_rRNA
+
+If you have an existing or custom rRNA file, you can then use::
 
     sequana_ribofinder --input-directory . --rRNA-file ribo.fasta
 
-or use existing GFF and fasta files, extracting the ribosomal gene on the fly::
-
-    sequana_ribofinder --input-directory . --reference-file test.fasta --gff-file test.gff  --rRNA-feature rRNA
 
 Rules and configuration details
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -95,6 +104,9 @@ Changelog
 ========= ====================================================================
 Version   Description
 ========= ====================================================================
+0.11.0    * Fix multiqc plot using same fix as in sequna_rnaseq pipelines
+          * add utility plot to check rate of  ribosomal per sequence and also
+            the corresponding  RPKM.
 0.10.2    * Fix the bowtie1 rule (all samples were named bowtie1)
 0.10.1    * add additional test and fix bug in pipeline (regression bug)
 0.10.0    * Update to use sequana-wrappers. Remove multiqc. summary.html 

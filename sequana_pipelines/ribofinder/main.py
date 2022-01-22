@@ -18,6 +18,7 @@ import sys
 import os
 import argparse
 import shutil
+import subprocess
 
 from sequana_pipetools.options import *
 from sequana_pipetools.options import before_pipeline

@@ -16,6 +16,7 @@ import glob
 import os
 import shutil
 from os.path import join
+from collections import Counter
 
 import sequana
 
@@ -37,6 +38,8 @@ __data__input = manager.getrawdata()
 rule pipeline:
     input: 
         ".sequana/rulegraph.svg",
+        "outputs/proportions.png",
+        "outputs/RPKM.png",
         "multiqc/multiqc_report.html"
 
 __fasta_file__ = config['general']['reference_file']
@@ -133,7 +136,7 @@ rule unpigz:
 #
 rule bowtie1_mapping_rna:
     input:
-        fastq=temp("{sample}/unpigz/{sample}.fastq"),
+        fastq="{sample}/unpigz/{sample}.fastq",
         index=__bowtie1_reference__
     output:
         bam="{sample}/bowtie1/{sample}.bam",
@@ -145,6 +148,82 @@ rule bowtie1_mapping_rna:
     threads: config['bowtie1_mapping_rna']['threads']
     wrapper:
         "main/wrappers/bowtie1/align"
+
+
+# ======================================================== Fix bowtie log
+# This fix_bowtie1_log is used to fix a bug in multiqc showing 0% match in all samples.
+# Note: same rule as in rnaseq pipeline.
+rule fix_bowtie1_log:
+    input:
+        expand("{sample}/bowtie1/{sample}.log", sample=manager.samples)
+    output:
+        "logs/fix_bowtie1_log"
+    run:
+        for filename in input:
+            # we read the file
+            with open(filename) as fin:
+                data = fin.readlines()
+            # we update the file
+            with open(filename, "w") as fout:
+                for line in data:
+                    if "least one alignment" in line:
+                        fout.write(line)
+                        fout.write(line.replace("least one alignment", "least one reported alignment"))
+                    else:
+                        fout.write(line)
+        with open(output[0], "w") as fout:
+            fout.write("")
+
+
+rule plotting:
+    input:
+        expand("{sample}/bowtie1/{sample}.sorted.bam", sample=manager.samples)
+    output:
+        png="outputs/proportions.png",
+        rpkm="outputs/RPKM.png"
+    run:
+        import pandas as pd
+        from sequana import BAM
+        from pylab import tight_layout, savefig, xlabel, ylabel, clf
+
+        results = []
+        for sample in input:
+            b = BAM(sample)
+            subdf = b.get_df()
+            N = len(subdf)
+            mapped = subdf.query("flag < 256 and flag != 4").rname
+            c = Counter(mapped)
+            for k in c.keys():
+                c[k] /= N
+                c[k] *= 100
+            results.append(c)
+        df = pd.DataFrame(results)
+
+        # a copy to preserve correcte sequence name for later
+        df1 = df.copy()
+        df1.colums = [x[0:30] for x in df1.columns ]
+
+        # first plot shown percentage of hits on each sequence 
+        import seaborn as sns
+        sns.violinplot(data=df1, orient='h')
+        xlabel("Ribosomal content (%)", fontsize=16)
+        ylabel("Sequence name", fontsize=10)
+        tight_layout()
+        savefig(output['png'])
+
+        # now, we shown the RPKM (read count normalised by gene length)
+        from sequana import FastA
+        f = FastA("build_feature_fasta/feature.fasta")
+        df = df.T
+        L = [ f.get_lengths_as_dict()[x] for x in df.index]
+        df = df.divide(L, axis=0)*1000
+        clf()
+        sns.violinplot(data=df.T, orient='h')
+        xlabel("RPKM", fontsize=16)
+        ylabel("Sequence name", fontsize=10)
+        tight_layout()
+        savefig(output['rpkm'])
+
 
 
 # ========================================================== BAM indexing
@@ -163,6 +242,8 @@ rule bam_indexing:
 # ========================================================== multiqc
 #
 sequana_multiqc_input = expand("{sample}/bowtie1/{sample}.sorted.bam.bai", sample=sorted(manager.samples))
+sequana_multiqc_input = expand("{sample}/bowtie1/{sample}.sorted.bam.bai", sample=sorted(manager.samples))
+sequana_multiqc_input += ["logs/fix_bowtie1_log"]
 include: sm.modules["multiqc/2.0"]
 
 # ========================================================== rulegraph
@@ -191,7 +272,8 @@ onsuccess:
             "pipeline_version": ribofinder.version
             }
 
-    HTML = "<h2>Summary</h2><p>Please see the ribosomal rates here below</p>"""
+    HTML = """<h2>Summary</h2><p>Please see the ribosomal rates here below 
+        (a similar plot from multiqc is <a href="multiqc/multiqc_report.html">here</a> ) </p>"""
 
     from sequana.multiqc.plots import Bowtie1Reader
     if os.path.exists("multiqc/multiqc_report_data/multiqc_bowtie1.txt"):
@@ -199,6 +281,9 @@ onsuccess:
         fig = br.plot_bar(html_code=True)
         from plotly import offline
         HTML += offline.plot(fig, output_type="div", include_plotlyjs=True)
+
+    HTML += '<p>Here below, you can see how the ribosomal hits are distributed amongst the sequences (note that this is not normalised against the lenth of each sequence)</p> <img src="outputs/proportions.png"></img>'
+    HTML += '<p>Here below, you can see how the reads are distributed amongst the sequences normalised by their  lengths (RPKM=reads per kilo base)</p> <img src="outputs/RPKM.png"></img>'
 
     # Now the final report. add the original command in the HTML report
     try:
