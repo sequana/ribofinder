@@ -43,7 +43,6 @@ For help, please type::
 The following command searches for input files in DATAPATH. Then, te user provide
 a list of rRNA sequences in FastA format in *test.fasta*. This command creates a directory 
 called ribofinder/ where a snakemake pipeline can
-be launched.
 
     sequana_ribofinder --input-directory DATAPATH --rRNA-file test.fasta
 
