@@ -178,7 +178,7 @@ rule fix_bowtie1_log:
 rule plotting:
     input:
         bam_files=expand("{sample}/bowtie1/{sample}.sorted.bam", sample=manager.samples),
-        fasta_file="build_feature_fasta/feature.fasta"
+        fasta_file=__bowtie1_index_rna__fasta
     output:
         png="outputs/proportions.png",
         rpkm="outputs/RPKM.png"
