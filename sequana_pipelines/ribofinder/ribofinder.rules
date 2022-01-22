@@ -177,7 +177,8 @@ rule fix_bowtie1_log:
 
 rule plotting:
     input:
-        expand("{sample}/bowtie1/{sample}.sorted.bam", sample=manager.samples)
+        bam_files=expand("{sample}/bowtie1/{sample}.sorted.bam", sample=manager.samples),
+        fasta_file="build_feature_fasta/feature.fasta"
     output:
         png="outputs/proportions.png",
         rpkm="outputs/RPKM.png"
@@ -187,7 +188,7 @@ rule plotting:
         from pylab import tight_layout, savefig, xlabel, ylabel, clf
 
         results = []
-        for sample in input:
+        for sample in input['bam_files']:
             b = BAM(sample)
             subdf = b.get_df()
             N = len(subdf)
@@ -201,8 +202,9 @@ rule plotting:
 
         # a copy to preserve correcte sequence name for later
         df1 = df.copy()
-        df1.colums = [x[0:30] for x in df1.columns ]
+        df1.columns = [x[0:30] for x in df1.columns ]
 
+        
         # first plot shown percentage of hits on each sequence 
         import seaborn as sns
         sns.violinplot(data=df1, orient='h')
@@ -213,7 +215,7 @@ rule plotting:
 
         # now, we shown the RPKM (read count normalised by gene length)
         from sequana import FastA
-        f = FastA("build_feature_fasta/feature.fasta")
+        f = FastA(input['fasta_file'])
         df = df.T
         L = [ f.get_lengths_as_dict()[x] for x in df.index]
         df = df.divide(L, axis=0)*1000
@@ -241,7 +243,6 @@ rule bam_indexing:
 
 # ========================================================== multiqc
 #
-sequana_multiqc_input = expand("{sample}/bowtie1/{sample}.sorted.bam.bai", sample=sorted(manager.samples))
 sequana_multiqc_input = expand("{sample}/bowtie1/{sample}.sorted.bam.bai", sample=sorted(manager.samples))
 sequana_multiqc_input += ["logs/fix_bowtie1_log"]
 include: sm.modules["multiqc/2.0"]
