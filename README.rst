@@ -22,13 +22,11 @@ This is is the **ribofinder** pipeline from the `Sequana <https://sequana.readth
 Installation
 ~~~~~~~~~~~~
 
-You must install Sequana first (use --upgrade to get the latest version installed)::
-
-    pip install sequana --upgrade
-
-Then, just install this package::
+Using **pip** from Python, just install this package::
 
     pip install sequana_ribofinder --upgrade
+
+The **--upgrade** option is to make sure you'll get the latest version.
 
 Usage
 ~~~~~
@@ -42,7 +40,7 @@ For help, please type::
 
 The following command searches for input files in DATAPATH. Then, te user provide
 a list of rRNA sequences in FastA format in *test.fasta*. This command creates a directory 
-called ribofinder/ where a snakemake pipeline can
+called ribofinder/ where a snakemake pipeline can::
 
     sequana_ribofinder --input-directory DATAPATH --rRNA-file test.fasta
 
@@ -76,17 +74,18 @@ Details
 This pipeline runs **ribofinder** in parallel on the input fastq files. 
 A brief sequana summary report is also produced.
 
-You can start from the reference file and the GFF file. By defaultm we search for the feature called 
-rRNA::
+You can start from the reference file and the GFF file. By default we search for the feature called 
+rRNA to be found in the GFF file::
 
     sequana_ribofinder --input-directory . --reference-file genome.fasta --gff-file genome.gff
 
 If the default feature rRNA is not found, no error is raised for now. If you know the expected feature, 
-you can provide it::
+you can provide it though::
 
     sequana_ribofinder --input-directory . --reference-file genome.fasta --gff-file genome.gff --rRNA-feature gene_rRNA
 
-If you have an existing or custom rRNA file, you can then use::
+If you have an existing or custom rRNA file, you can then use it as follows, in which case, no input reference is
+required::
 
     sequana_ribofinder --input-directory . --rRNA-file ribo.fasta
 
