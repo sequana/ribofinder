@@ -102,6 +102,7 @@ Changelog
 ========= ====================================================================
 Version   Description
 ========= ====================================================================
+0.11.1    * Fix config file (removing hard-coded path)
 0.11.0    * Fix multiqc plot using same fix as in sequna_rnaseq pipelines
           * add utility plot to check rate of  ribosomal per sequence and also
             the corresponding  RPKM.

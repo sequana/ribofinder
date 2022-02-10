@@ -7,7 +7,7 @@
 # If input_directory provided, use it otherwise if input_pattern provided,
 # use it, otherwise use input_samples.
 # ============================================================================
-input_directory: /home/cokelaer/Work/github/sequana_pipelines/ribofinder/test/data
+input_directory:
 input_readtag: _R[12]_
 input_pattern: '*fastq.gz'
 # =========================================== Sections for the users
@@ -37,8 +37,8 @@ general:
     rRNA_file: ''
     rRNA_feature: rRNA
     genbank_file: ''
-    gff_file: /home/cokelaer/Work/github/sequana_pipelines/ribofinder/test/data/Lepto.gff
-    reference_file: /home/cokelaer/Work/github/sequana_pipelines/ribofinder/test/data/Lepto.fa
+    gff_file: 
+    reference_file: 
 
 
 
