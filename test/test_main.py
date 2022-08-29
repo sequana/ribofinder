@@ -39,7 +39,14 @@ def test_full_rRNA_extract():
         cmd += f"--working-directory {wk}  --force --reference-file {sharedir}/Lepto.fa --gff-file {sharedir}/Lepto.gff"
         subprocess.call(cmd.split())
         stat = subprocess.call("sh ribofinder.sh".split(), cwd=wk)
-        assert os.path.exists(wk + "/summary.html")
+
+
+        if os.path.exists(wk + "/summary.html"):
+            pass
+        else:
+            with open(f"{wk}/indexing/bowtie_rRNA.log", "r") as fout: 
+                print(fout.read())
+            raise IOError
 
 def test_version():
     cmd = "sequana_ribofinder --version"
