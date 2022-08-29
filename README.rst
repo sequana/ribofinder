@@ -62,8 +62,10 @@ Requirements
 
 This pipelines requires the following executable(s):
 
-- bowtie1
+- bowtie1 >= 1.3.0
+- bedtools
 - samtools
+- bamtools
 - pigz
 
 .. image:: https://raw.githubusercontent.com/sequana/ribofinder/master/sequana_pipelines/ribofinder/dag.png
@@ -102,6 +104,7 @@ Changelog
 ========= ====================================================================
 Version   Description
 ========= ====================================================================
+0.12.0    * set singularity containers
 0.11.1    * Fix config file (removing hard-coded path)
 0.11.0    * Fix multiqc plot using same fix as in sequna_rnaseq pipelines
           * add utility plot to check rate of  ribosomal per sequence and also
