@@ -1,18 +1,14 @@
-name: sequana_variant_calling
+name: sequana_ribofinder
 
 channels:
-  - conda-forge
-  - bioconda
-  - defaults
+- conda-forge
+- bioconda
+- defaults
+- r
 
 dependencies:
-  - bowtie>=1.3.0
-  - samtools
-  - bamtools
-  - pigz
-  - bedtools
-  - pip
-  - pip:
-    - sequana
-
-
+- 'bowtie>=1.3.0'
+- samtools>1.7
+- bamtools
+- bedtools
+- pigz

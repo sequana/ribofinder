@@ -82,24 +82,23 @@ elif get_annot_file().endswith(".gff") or get_annot_file().endswith(".gff3"):
 
 
     rule build_feature_fasta:
-        """ extract rRNA feature from GFF and get corresponding fasta and gff. 
+        """ extract rRNA feature from GFF and get corresponding fasta and gff.
 
-        if no match for rRNA, save empty fasta as AAAAAAAAAAA
+        if there is no match for rRNA, we can use polyA AAAAAAAAAAA
         """
         input:
             fasta = input_fasta,
             gff = get_annot_file()
         output:
             fasta = "build_feature_fasta/feature.fasta",
-            fai = "build_feature_fasta/feature.fasta.fai",
             gff = "build_feature_fasta/feature_rRNA.gff"
         params:
            feature = config['general']['rRNA_feature']
         container:
-            "https://zenodo.org/record/7031863/files/sequana_tools_0.14.2.img"
+            config["apptainers"]["bedtools"]
         shell:
             """
-            # used to be gawk but awk is more generic.
+            # used to be gawk but awk is more generic and available in the container.
             awk '{{ if ($3=="{params.feature}") print }}' {input.gff} > {output.gff}
             if [ -s {output.gff} ]
             then
@@ -107,11 +106,19 @@ elif get_annot_file().endswith(".gff") or get_annot_file().endswith(".gff3"):
             else :
                 echo -e ">empty\\nAAAAAAAAAAAAAA" > {output.fasta}
             fi
-            samtools faidx {output.fasta}
             """
 
-
-
+    rule samtools_faidx:
+        input:
+            fasta = "build_feature_fasta/feature.fasta"
+        output:
+            fai = "build_feature_fasta/feature.fasta.fai"
+        container:
+            config["apptainers"]["samtools"]
+        shell:
+            """
+            samtools faidx {input.fasta}
+            """
 
 
 rule bowtie1_indexing:
@@ -123,10 +130,10 @@ rule bowtie1_indexing:
         "indexing/bowtie_rRNA.log"
     params:
         options=""
-    threads: 
+    threads:
         2
     container:
-        "https://zenodo.org/record/7031863/files/sequana_tools_0.14.2.img"
+        config['apptainers']['sequana_ribofinder']
     wrapper:
         "main/wrappers/bowtie1/build"
 
@@ -145,7 +152,7 @@ rule unpigz:
     output: temp("{sample}/unpigz/{sample}.fastq")
     threads: 4
     container:
-        "https://zenodo.org/record/7031863/files/sequana_tools_0.14.2.img"
+        config['apptainers']['pigz']
     shell:
         """
         unpigz -p {threads} -fk --stdout {input[0]} > {output}
@@ -165,10 +172,10 @@ rule bowtie1_mapping_rna:
         "{sample}/bowtie1/{sample}.log"
     params:
         options=""
-    threads: 
+    threads:
         config['bowtie1_mapping_rna']['threads']
     container:
-        "https://zenodo.org/record/7031863/files/sequana_tools_0.14.2.img"
+        config['apptainers']['sequana_ribofinder']
     wrapper:
         "main/wrappers/bowtie1/align"
 
@@ -259,7 +266,7 @@ rule bam_indexing:
     output:
         "{sample}/bowtie1/{sample}.sorted.bam.bai"
     container:
-        "https://zenodo.org/record/7031863/files/sequana_tools_0.14.2.img"
+        config['apptainers']['sequana_ribofinder']
     shell:
         """
         bamtools index -in {input}

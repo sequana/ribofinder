@@ -37,10 +37,14 @@ general:
     rRNA_file: ''
     rRNA_feature: rRNA
     genbank_file: ''
-    gff_file: 
-    reference_file: 
+    gff_file:
+    reference_file:
 
-
+apptainers:
+    sequana_ribofinder: "https://zenodo.org/record/7348115/files/sequana_ribofinder_0.12.0.img"
+    pigz: "https://zenodo.org/record/7346805/files/pigz_2.4.0.img"
+    bedtools: "https://zenodo.org/record/7346774/files/bedtools_2.30.0.img"
+    samtools: "https://zenodo.org/record/7215278/files/samtools_1.15.0.img"
 
 #############################################################################
 # bowtie1_mapping_rna used to align reads against ribosomal RNA

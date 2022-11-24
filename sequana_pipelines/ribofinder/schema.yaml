@@ -12,6 +12,8 @@ mapping:
     "input_pattern":
         type: str
         required: True
+    "apptainers":
+        type: any
 
     "general":
         type: map
