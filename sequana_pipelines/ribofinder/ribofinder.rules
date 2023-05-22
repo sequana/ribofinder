@@ -26,7 +26,7 @@ from sequana.gff3 import GFF3
 configfile: "config.yaml"
 
 manager = PipelineManager("ribofinder", config)
-
+sequana_wrapper_branch = "main"
 
 
 rule pipeline:
@@ -135,7 +135,7 @@ rule bowtie1_indexing:
     container:
         config['apptainers']['sequana_ribofinder']
     wrapper:
-        "main/wrappers/bowtie1/build"
+        f"{sequana_wrapper_branch}/wrappers/bowtie1/build"
 
 
 
@@ -177,7 +177,7 @@ rule bowtie1_mapping_rna:
     container:
         config['apptainers']['sequana_ribofinder']
     wrapper:
-        "main/wrappers/bowtie1/align"
+        f"{sequana_wrapper_branch}/wrappers/bowtie1/align"
 
 
 # ======================================================== Fix bowtie log
@@ -277,12 +277,46 @@ rule bam_indexing:
 #
 sequana_multiqc_input = expand("{sample}/bowtie1/{sample}.sorted.bam.bai", sample=sorted(manager.samples))
 sequana_multiqc_input += ["logs/fix_bowtie1_log"]
-include: sm.modules["multiqc/2.0"]
+
+
+rule multiqc:
+    input:
+        sequana_multiqc_input
+    output:
+       "multiqc/multiqc_report.html"
+    params:
+        options=config['multiqc']['options'],
+        input_directory=config['multiqc']['input_directory'],
+        config_file=config['multiqc']['config_file'],
+        modules=config['multiqc']['modules']
+    log:
+        "multiqc/multiqc.log"
+    wrapper:
+       f"{sequana_wrapper_branch}/wrappers/multiqc"
+
 
 # ========================================================== rulegraph
-#
-sequana_rulegraph_mapper = {"multiqc": "../multiqc/multiqc_report.html"}
-include: sm.modules['rulegraph']
+rule rulegraph:
+    input: str(manager.snakefile)
+    output:
+        svg = "rulegraph/rulegraph.dot"
+    params:
+        mapper = {"multiqc": "../multiqc/multiqc_report.html"},
+        configname = "config.yaml"
+    wrapper:
+        f"{sequana_wrapper_branch}/wrappers/rulegraph"
+
+
+rule dot2svg:
+    input:
+        "rulegraph/rulegraph.dot"
+    output:
+        ".sequana/rulegraph.svg"
+    container:
+        config['apptainers']['graphviz']
+    shell:
+        """dot -Tsvg {input} -o {output}"""
+
 
 
 
