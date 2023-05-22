@@ -104,6 +104,7 @@ Changelog
 ========= ====================================================================
 Version   Description
 ========= ====================================================================
+1.0.0     * use graphviz apptainer and latest wrappers
 0.13.0    * add  final apptainers and update CI actions
 0.12.0    * set singularity containers
 0.11.1    * Fix config file (removing hard-coded path)
