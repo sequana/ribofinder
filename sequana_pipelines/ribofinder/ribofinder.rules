@@ -18,15 +18,12 @@ from collections import Counter
 
 
 from sequana_pipetools import PipelineManager
-from sequana_pipetools import snaketools as sm
-from sequana import logger as log
-
 from sequana.gff3 import GFF3
+from sequana import logger as log
 
 configfile: "config.yaml"
 
 manager = PipelineManager("ribofinder", config)
-sequana_wrapper_branch = "main"
 
 
 rule pipeline:
@@ -135,7 +132,7 @@ rule bowtie1_indexing:
     container:
         config['apptainers']['sequana_ribofinder']
     wrapper:
-        f"{sequana_wrapper_branch}/wrappers/bowtie1/build"
+        f"{manager.wrappers}/wrappers/bowtie1/build"
 
 
 
@@ -177,7 +174,7 @@ rule bowtie1_mapping_rna:
     container:
         config['apptainers']['sequana_ribofinder']
     wrapper:
-        f"{sequana_wrapper_branch}/wrappers/bowtie1/align"
+        f"{manager.wrappers}/wrappers/bowtie1/align"
 
 
 # ======================================================== Fix bowtie log
@@ -292,7 +289,7 @@ rule multiqc:
     log:
         "multiqc/multiqc.log"
     wrapper:
-       f"{sequana_wrapper_branch}/wrappers/multiqc"
+       f"{manager.wrappers}/wrappers/multiqc"
 
 
 # ========================================================== rulegraph
@@ -304,7 +301,7 @@ rule rulegraph:
         mapper = {"multiqc": "../multiqc/multiqc_report.html"},
         configname = "config.yaml"
     wrapper:
-        f"{sequana_wrapper_branch}/wrappers/rulegraph"
+        f"{manager.wrappers}/wrappers/rulegraph"
 
 
 rule dot2svg:
