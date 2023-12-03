@@ -3,6 +3,9 @@ import os
 import tempfile
 import subprocess
 import sys
+from click.testing import CliRunner
+from sequana_pipelines.ribofinder.main import main
+
 
 from . import test_dir
 
@@ -17,10 +20,12 @@ def test_standalone_subprocess():
 
 def test_standalone_script():
     directory = tempfile.TemporaryDirectory()
-    import sequana_pipelines.ribofinder.main as m
-    sys.argv = ["test", "--input-directory", sharedir, 
-            "--working-directory", directory.name, "--force", "--rRNA-file", sharedir+"feature.fasta"]
-    m.main()
+
+
+    runner = CliRunner()
+    results = runner.invoke(main, [ "--input-directory", sharedir, 
+            "--working-directory", directory.name, "--force", "--rRNA-file", sharedir+"feature.fasta"])
+    assert results.exit_code == 0
 
 
 def test_full_rRNA_file():

@@ -7,7 +7,8 @@
 # If input_directory provided, use it otherwise if input_pattern provided,
 # use it, otherwise use input_samples.
 # ============================================================================
-sequana_wrappers: "v0.15.1"
+sequana_wrappers: "v23.11.18"
+
 input_directory:
 input_readtag: _R[12]_
 input_pattern: '*fastq.gz'
@@ -47,6 +48,7 @@ apptainers:
     bedtools: "https://zenodo.org/record/7346774/files/bedtools_2.30.0.img"
     samtools: "https://zenodo.org/record/7215278/files/samtools_1.15.0.img"
     graphviz:  "https://zenodo.org/record/7928262/files/graphviz_7.0.5.img"
+    multiqc: "https://zenodo.org/record/10205070/files/multiqc_1.16.0.img"
 
 #############################################################################
 # bowtie1_mapping_rna used to align reads against ribosomal RNA

@@ -231,7 +231,7 @@ rule plotting:
         df1 = df.copy()
         df1.columns = [x[0:30] for x in df1.columns ]
 
-        
+
         # first plot shown percentage of hits on each sequence 
         import seaborn as sns
         sns.violinplot(data=df1, orient='h')
@@ -288,6 +288,8 @@ rule multiqc:
         modules=config['multiqc']['modules']
     log:
         "multiqc/multiqc.log"
+    container:
+        config["apptainers"]["multiqc"]
     wrapper:
        f"{manager.wrappers}/wrappers/multiqc"
 
@@ -328,7 +330,7 @@ onsuccess:
     manager.teardown()
 
 
-    from sequana.modules_report.summary import SummaryModule2
+    from sequana.modules_report.summary import SequanaReport
     from sequana_pipelines import ribofinder
     data = {
             "name": manager.name,
@@ -360,16 +362,12 @@ onsuccess:
     except Exception:
         pass
 
-    s = SummaryModule2(data, intro=HTML)
+    data = manager.getmetadata()
+    s = SequanaReport(data, intro=HTML)
 
 
     shell("chmod -R g+w .")
     shell("rm -rf rulegraph")
 onerror:
-    print("An error occurred. See message above.")
-
-onerror:
-    from sequana_pipetools.errors import PipeError
-    p = PipeError("ribofinder")
-    p.status()
+    manager.onerror()
 
