@@ -109,6 +109,7 @@ Changelog
 ========= ====================================================================
 Version   Description
 ========= ====================================================================
+1.1.1     * hotfix for running on HPC (slurm)
 1.1.0     * Uses click (refactoring of sequana_pipetools)
 1.0.1     * add sequana_wrappers in the config/pipeline
 1.0.0     * use graphviz apptainer and latest wrappers

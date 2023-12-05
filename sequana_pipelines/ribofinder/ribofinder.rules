@@ -184,7 +184,7 @@ rule fix_bowtie1_log:
     input:
         expand("{sample}/bowtie1/{sample}.log", sample=manager.samples)
     output:
-        "logs/fix_bowtie1_log"
+        "logs/fix_bowtie1_log/done"
     run:
         for filename in input:
             # we read the file
@@ -273,7 +273,7 @@ rule bam_indexing:
 # ========================================================== multiqc
 #
 sequana_multiqc_input = expand("{sample}/bowtie1/{sample}.sorted.bam.bai", sample=sorted(manager.samples))
-sequana_multiqc_input += ["logs/fix_bowtie1_log"]
+sequana_multiqc_input += ["logs/fix_bowtie1_log/done"]
 
 
 rule multiqc:
