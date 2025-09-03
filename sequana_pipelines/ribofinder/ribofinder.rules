@@ -75,7 +75,7 @@ elif get_annot_file().endswith(".gbk"):
 elif get_annot_file().endswith(".gff") or get_annot_file().endswith(".gff3"):
     for this in [input_fasta, get_annot_file()]:
         if os.path.exists(this) is False:
-            raise IOError("File {} not found".format(input_fasta))
+            raise IOError(f"File {this} not found")
 
 
     rule build_feature_fasta:
