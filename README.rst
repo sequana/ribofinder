@@ -9,10 +9,9 @@
 .. image:: https://github.com/sequana/ribofinder/actions/workflows/main.yml/badge.svg
    :target: https://github.com/sequana/ribofinder/actions/workflows/main.yml
 
-.. image:: https://img.shields.io/badge/python-3.8%20%7C%203.9%20%7C3.10-blue.svg
-    :target: https://pypi.python.org/pypi/sequana
-    :alt: Python 3.8 | 3.9 | 3.10
-
+.. image:: https://img.shields.io/badge/python-3.11%20%7C%203.12-blue.svg
+    :target: https://pypi.python.org/pypi/sequana_ribofinder
+    :alt: Python 3.11 | 3.12
 
 
 This is is the **ribofinder** pipeline from the `Sequana <https://sequana.readthedocs.org>`_ project
