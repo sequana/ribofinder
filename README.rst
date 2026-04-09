@@ -9,9 +9,9 @@
 .. image:: https://github.com/sequana/ribofinder/actions/workflows/main.yml/badge.svg
    :target: https://github.com/sequana/ribofinder/actions/workflows/main.yml
 
-.. image:: https://img.shields.io/badge/python-3.8%20%7C%203.9%20%7C3.10-blue.svg
+.. image:: https://img.shields.io/badge/python-3.9%20%7C%203.10%20%7C%203.11%20%7C%203.12-blue.svg
     :target: https://pypi.python.org/pypi/sequana
-    :alt: Python 3.8 | 3.9 | 3.10
+    :alt: Python 3.9 | 3.10 | 3.11 | 3.12
 
 
 
@@ -67,11 +67,15 @@ Requirements
 
 This pipelines requires the following executable(s):
 
-- bowtie1 >= 1.3.0
+- bowtie2 >= 2.4.0
+- bwa
+- sambamba
 - bedtools
 - samtools
-- bamtools
 - pigz
+
+The aligner is selectable at the command line with ``--aligner bowtie2`` (default)
+or ``--aligner bwa``. You only need to install the one(s) you intend to use.
 
 .. image:: https://raw.githubusercontent.com/sequana/ribofinder/master/sequana_pipelines/ribofinder/dag.png
 
@@ -109,6 +113,23 @@ Changelog
 ========= ====================================================================
 Version   Description
 ========= ====================================================================
+1.2.0     * Replace bowtie1 with bowtie2 (default) and bwa as aligner options
+            for rRNA mapping; the aligner is now user-selectable via
+            ``--aligner bowtie2|bwa``.
+          * Drop the bowtie1-specific ``fix_bowtie1_log`` workaround and the
+            standalone ``bam_indexing`` / ``samtools_faidx`` rules; the new
+            sequana-wrappers already produce sorted+indexed BAMs and a
+            faidx'ed reference.
+          * For bwa, feed multiqc with ``samtools stats`` output (bwa has no
+            native multiqc module); the mapping-rate plot in the HTML report
+            is built from ``multiqc_samtools_stats.txt``.
+          * For bowtie2, the HTML summary uses ``sequana.multiqc.plots.Bowtie2``
+            which handles both single-end and paired-end outputs.
+          * Rewrite the HTML summary introduction to explain what the
+            pipeline does, how it works step-by-step, and how to interpret
+            each of the three plots (mapping rate, per-sequence proportions,
+            per-sequence RPKM).
+            (``bowtie2``, ``bwa``, ``sambamba`` replace ``bowtie``/``bamtools``).
 1.1.1     * hotfix for running on HPC (slurm)
 1.1.0     * Uses click (refactoring of sequana_pipetools)
 1.0.1     * add sequana_wrappers in the config/pipeline

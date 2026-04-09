@@ -3,9 +3,6 @@
 
 type: map
 mapping:
-    "sequana_wrappers":
-        type: str
-        required: true
     "input_directory":
         type: str
         required: True
@@ -15,6 +12,9 @@ mapping:
     "input_pattern":
         type: str
         required: True
+    "exclude_pattern":
+        type: str
+        required: False
     "apptainers":
         type: any
 
@@ -24,7 +24,7 @@ mapping:
             "aligner":
                 type: str
                 required: True
-                enum: ["bowtie1"]
+                enum: ["bowtie2", "bwa"]
             "rRNA_feature":
                 type: str
             "rRNA_file":
@@ -36,28 +36,30 @@ mapping:
             "gff_file":
                 type: str
 
-    'bowtie1_mapping_ref':
+    'bowtie2_mapping_rna':
         type: map
         mapping:
-            "options":
-                type: str
-            "threads":
-                type: int
-                required: True
-                range: { min: 1 }
-
-
-    'bowtie1_mapping_rna':
-        type: map
-        mapping:
-            "do":
-                type: bool
             "options":
                 type: str
             "threads":
                 type: int
                 required: True
                 range: { min: 1}
+
+    'bwa_mapping_rna':
+        type: map
+        mapping:
+            "index_algorithm":
+                type: str
+                enum: ["is", "bwtsw", "rb2"]
+            "options":
+                type: str
+            "threads":
+                type: int
+                required: True
+                range: { min: 1}
+            "tmp_directory":
+                type: str
 
     "multiqc":
         type: map
@@ -74,6 +76,3 @@ mapping:
                 type: str
             "modules":
                 type: str
-
-
-

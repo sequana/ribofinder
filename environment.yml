@@ -7,8 +7,10 @@ channels:
 - r
 
 dependencies:
-- 'bowtie>=1.3.0'
+- 'bowtie2>=2.4.0'
+- bwa
+- sambamba
 - samtools>1.7
-- bamtools
 - bedtools
 - pigz
+- graphviz

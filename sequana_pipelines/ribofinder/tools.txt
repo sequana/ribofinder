@@ -1,5 +1,8 @@
-bowtie
+bowtie2
+bwa
+sambamba
 samtools
 bedtools
-bamtools
 pigz
+graphviz
+multiqc

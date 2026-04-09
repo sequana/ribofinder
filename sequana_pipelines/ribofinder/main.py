@@ -48,7 +48,11 @@ help = init_click(
 @include_options_from(ClickInputOptions)
 @include_options_from(ClickGeneralOptions)
 @click.option(
-    "--aligner", "aligner", type=click.Choice(["bowtie1"]), default="bowtie1", help="the alignement tool (bowtie1)"
+    "--aligner",
+    "aligner",
+    type=click.Choice(["bowtie2", "bwa"]),
+    default="bowtie2",
+    help="the alignment tool (bowtie2 or bwa). Default: bowtie2.",
 )
 @click.option(
     "--rRNA-feature",
@@ -87,6 +91,12 @@ def main(**options):
     # --------------------------------------------------------- general
     def fill_aligner():
         cfg.general.aligner = options.aligner
+        # Keep multiqc modules in sync with the selected aligner. bwa has no
+        # dedicated multiqc module, so we rely on samtools stats instead.
+        if options.aligner == "bwa":
+            cfg.multiqc.modules = "samtools"
+        else:
+            cfg.multiqc.modules = "bowtie2"
 
     def fill_rRNA_feature():
         cfg.general.rRNA_feature = options.rRNA_feature
@@ -107,7 +117,7 @@ def main(**options):
         if options.reference_file:
             cfg.general.reference_file = os.path.abspath(options.reference_file)
 
-    if options["from_project"]:
+    if options.from_project:
         if "--aligner" in sys.argv:
             fill_aligner()
         if "--rRNA-feature" in sys.argv:
@@ -118,7 +128,7 @@ def main(**options):
             fill_genbank_file()
         if "--gff-file" in sys.argv:
             fill_gff_file()
-        if "--reference-fle" in sys.argv:
+        if "--reference-file" in sys.argv:
             fill_reference_file()
 
     else:
@@ -141,7 +151,7 @@ def main(**options):
                 gbk = GenBank(options.genbank_file)
             if options.genbank_file is None and options.gff_file is None:
                 click.echo("Most probably you want to provide an annotation (genbank-file or gff-file)", err=True)
-                sys.exit(0)
+                sys.exit(1)
 
     # finalise the command and save it; copy the snakemake. update the config
     # file and save it.

@@ -4,7 +4,7 @@ build-backend = "poetry.core.masonry.api"
 
 [tool.poetry]
 name = "sequana-ribofinder"
-version = "1.1.1"
+version = "1.2.0"
 description = "A multi-sample identification of ribosomal content"
 authors = ["Sequana Team"]
 license = "BSD-3"
@@ -19,9 +19,9 @@ classifiers = [
         "Intended Audience :: Science/Research",
         "License :: OSI Approved :: BSD License",
         "Operating System :: POSIX :: Linux",
-        "Programming Language :: Python :: 3.8",
-        "Programming Language :: Python :: 3.9",
         "Programming Language :: Python :: 3.10",
+        "Programming Language :: Python :: 3.11",
+        "Programming Language :: Python :: 3.12",
         "Topic :: Software Development :: Libraries :: Python Modules",
         "Topic :: Scientific/Engineering :: Bio-Informatics",
         "Topic :: Scientific/Engineering :: Information Analysis",
@@ -33,11 +33,13 @@ packages = [
 
 
 [tool.poetry.dependencies]
-python = ">=3.8,<4.0"
-sequana = ">=0.15.0"
-sequana_pipetools = ">=0.16.0"
+python = ">=3.9,<4.0"
+sequana = ">=0.18.0"
+sequana_pipetools = ">=1.5.4"
+sequana-wrappers = ">=26.3.19"
 click-completion = "^0.5.2"
-
+snakemake = ">=7.32"
+pulp = ">=2.8"
 
 [tool.poetry.scripts]
 sequana_ribofinder = "sequana_pipelines.ribofinder.main:main"
@@ -45,8 +47,15 @@ sequana_ribofinder = "sequana_pipelines.ribofinder.main:main"
 
 [tool.poetry.group.dev.dependencies]
 black = "^23.7.0"
-pytest = "^7.4.0"
+pytest = "^8.0.0"
 mock = "^5.1.0"
 pytest-mock = "^3.11.1"
 pytest-cov = "^4.1.0"
 
+[tool.pytest.ini_options]
+filterwarnings = [
+    "ignore::pytest.PytestDeprecationWarning",
+    "ignore::DeprecationWarning:click_completion",
+    "ignore::DeprecationWarning:importlib",
+]
+asyncio_mode = "auto"

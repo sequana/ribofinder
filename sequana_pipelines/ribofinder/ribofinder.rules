@@ -26,6 +26,13 @@ configfile: "config.yaml"
 manager = PipelineManager("ribofinder", config)
 
 
+aligner = config["general"]["aligner"]
+if aligner not in ("bowtie2", "bwa"):
+    raise ValueError(
+        f"config['general']['aligner'] must be 'bowtie2' or 'bwa', got {aligner!r}"
+    )
+
+
 rule pipeline:
     input:
         ".sequana/rulegraph.svg",
@@ -89,123 +96,152 @@ elif get_annot_file().endswith(".gff") or get_annot_file().endswith(".gff3"):
         output:
             fasta = "build_feature_fasta/feature.fasta",
             gff = "build_feature_fasta/feature_rRNA.gff"
+        log:
+            "logs/build_feature_fasta/build_feature_fasta.log"
         params:
            feature = config['general']['rRNA_feature']
         container:
-            config["apptainers"]["bedtools"]
+            config["apptainers"]["sequana_tools"]
         shell:
             """
             # used to be gawk but awk is more generic and available in the container.
-            awk '{{ if ($3=="{params.feature}") print }}' {input.gff} > {output.gff}
+            awk '{{ if ($3=="{params.feature}") print }}' {input.gff} > {output.gff} 2> {log}
             if [ -s {output.gff} ]
             then
-                bedtools getfasta -fi {input.fasta} -bed {output.gff}  -fo {output.fasta}
+                bedtools getfasta -fi {input.fasta} -bed {output.gff}  -fo {output.fasta} >> {log} 2>&1
             else :
                 echo -e ">empty\\nAAAAAAAAAAAAAA" > {output.fasta}
             fi
             """
 
-    rule samtools_faidx:
-        input:
-            fasta = "build_feature_fasta/feature.fasta"
-        output:
-            fai = "build_feature_fasta/feature.fasta.fai"
-        container:
-            config["apptainers"]["samtools"]
-        shell:
-            """
-            samtools faidx {input.fasta}
-            """
+    # The bowtie2/build and bwa/build wrappers both call `samtools faidx` on
+    # the reference, so a dedicated samtools_faidx rule is no longer needed.
 
 
-rule bowtie1_indexing:
-    input:
-        reference= "build_feature_fasta/feature.fasta"
-    output:
-        "build_feature_fasta/feature_rRNA.1.ebwt"
-    log:
-        "indexing/bowtie_rRNA.log"
-    params:
-        options=""
-    threads:
-        2
-    container:
-        config['apptainers']['sequana_ribofinder']
-    wrapper:
-        f"{manager.wrappers}/wrappers/bowtie1/build"
+# ====================================================== Indexing and mapping
+#
+# Reads are decompressed, then mapped onto the rRNA feature fasta using the
+# aligner selected by the user (bowtie2 or bwa). Both wrappers also index the
+# sorted BAM file, so no separate bam_indexing rule is required.
 
-
-
-"""With paired data, alignement on rRNA leads to 0% alignment if we use R1 and
+"""With paired data, alignment on rRNA leads to 0% alignment if we use R1 and
 R2. If we use R1 only, the percentage is >0. First reason is that reads are not
-trimmed properly. In truth, bowtie2 supports local alignments which means it can
-soft-clip non-matching (=adapter) content while still align the local part of
-the read that matches the reference. With Bowtie1 the read will probably go
-unaligned due to the many mismatches. So we do not include R2.
+trimmed properly. bowtie2 supports local alignments which means it can
+soft-clip non-matching (=adapter) content while still aligning the local part
+of the read that matches the reference. For this reason we only feed R1 to the
+rRNA mapping step.
 """
 
 rule unpigz:
     input: manager.getrawdata()
     output: temp("{sample}/unpigz/{sample}.fastq")
+    log:
+        "{sample}/unpigz/unpigz.log"
     threads: 4
     container:
         config['apptainers']['pigz']
     shell:
         """
-        unpigz -p {threads} -fk --stdout {input[0]} > {output}
+        unpigz -p {threads} -fk --stdout {input[0]} > {output} 2> {log}
         """
 
 
-# ========================================================== Bowtie1 indexing
-#
-rule bowtie1_mapping_rna:
-    input:
-        fastq="{sample}/unpigz/{sample}.fastq",
-        index="build_feature_fasta/feature_rRNA.1.ebwt"
-    output:
-        bam="{sample}/bowtie1/{sample}.bam",
-        sorted="{sample}/bowtie1/{sample}.sorted.bam"
-    log:
-        "{sample}/bowtie1/{sample}.log"
-    params:
-        options=""
-    threads:
-        config['bowtie1_mapping_rna']['threads']
-    container:
-        config['apptainers']['sequana_ribofinder']
-    wrapper:
-        f"{manager.wrappers}/wrappers/bowtie1/align"
+if aligner == "bowtie2":
+
+    rule bowtie2_indexing:
+        input:
+            reference="build_feature_fasta/feature.fasta"
+        output:
+            multiext(
+                "build_feature_fasta/feature",
+                ".1.bt2", ".2.bt2", ".3.bt2", ".4.bt2", ".rev.1.bt2", ".rev.2.bt2",
+            )
+        log:
+            "indexing/bowtie2_rRNA.log"
+        params:
+            options=""
+        threads: 2
+        container:
+            config['apptainers']['sequana_tools']
+        shell:
+            manager.get_shell("bowtie2/build", "v1")
 
 
-# ======================================================== Fix bowtie log
-# This fix_bowtie1_log is used to fix a bug in multiqc showing 0% match in all samples.
-# Note: same rule as in rnaseq pipeline.
-rule fix_bowtie1_log:
-    input:
-        expand("{sample}/bowtie1/{sample}.log", sample=manager.samples)
-    output:
-        "logs/fix_bowtie1_log/done"
-    run:
-        for filename in input:
-            # we read the file
-            with open(filename) as fin:
-                data = fin.readlines()
-            # we update the file
-            with open(filename, "w") as fout:
-                for line in data:
-                    if "least one alignment" in line:
-                        fout.write(line)
-                        fout.write(line.replace("least one alignment", "least one reported alignment"))
-                    else:
-                        fout.write(line)
-        with open(output[0], "w") as fout:
-            fout.write("")
+    rule bowtie2_mapping_rna:
+        input:
+            fastq=["{sample}/unpigz/{sample}.fastq"],
+            idx=multiext(
+                "build_feature_fasta/feature",
+                ".1.bt2", ".2.bt2", ".3.bt2", ".4.bt2", ".rev.1.bt2", ".rev.2.bt2",
+            )
+        output:
+            bam="{sample}/bowtie2/{sample}.sorted.bam"
+        log:
+            "{sample}/bowtie2/{sample}.log"
+        params:
+            options=config["bowtie2_mapping_rna"]["options"]
+        threads:
+            config["bowtie2_mapping_rna"]["threads"]
+        container:
+            config['apptainers']['sequana_tools']
+        shell:
+            manager.get_shell("bowtie2/align", "v1")
+
+
+    # Alias variables used downstream by plotting and multiqc rules.
+    mapper_bam_pattern = "{sample}/bowtie2/{sample}.sorted.bam"
+    mapper_log_pattern = "{sample}/bowtie2/{sample}.log"
+
+
+elif aligner == "bwa":
+
+    rule bwa_indexing:
+        input:
+            reference="build_feature_fasta/feature.fasta"
+        output:
+            bwt="build_feature_fasta/feature.fasta.bwt",
+            fai="build_feature_fasta/feature.fasta.fai"
+        log:
+            "indexing/bwa_rRNA.log"
+        params:
+            options="",
+            index_algorithm=config["bwa_mapping_rna"]["index_algorithm"]
+        threads: 2
+        container:
+            config['apptainers']['sequana_tools']
+        shell:
+            manager.get_shell("bwa/build", "v1")
+
+
+    rule bwa_mapping_rna:
+        input:
+            fastq="{sample}/unpigz/{sample}.fastq",
+            reference="build_feature_fasta/feature.fasta",
+            bwt="build_feature_fasta/feature.fasta.bwt",
+            fai="build_feature_fasta/feature.fasta.fai"
+        output:
+            sorted="{sample}/bwa/{sample}.sorted.bam"
+        log:
+            "{sample}/bwa/{sample}.log"
+        params:
+            options=config["bwa_mapping_rna"]["options"],
+            tmp_directory=config["bwa_mapping_rna"]["tmp_directory"]
+        threads:
+            config["bwa_mapping_rna"]["threads"]
+        container:
+            config['apptainers']['sequana_tools']
+        shell:
+            manager.get_shell("bwa/align", "v1")
+
+
+    mapper_bam_pattern = "{sample}/bwa/{sample}.sorted.bam"
+    mapper_log_pattern = "{sample}/bwa/{sample}.log"
 
 
 rule plotting:
     input:
-        bam_files=expand("{sample}/bowtie1/{sample}.sorted.bam", sample=manager.samples),
-        fasta_file= "build_feature_fasta/feature.fasta"
+        bam_files=expand(mapper_bam_pattern, sample=manager.samples),
+        fasta_file="build_feature_fasta/feature.fasta"
     output:
         png="outputs/proportions.png",
         rpkm="outputs/RPKM.png"
@@ -227,12 +263,12 @@ rule plotting:
             results.append(c)
         df = pd.DataFrame(results)
 
-        # a copy to preserve correcte sequence name for later
+        # a copy to preserve correct sequence name for later
         df1 = df.copy()
         df1.columns = [x[0:30] for x in df1.columns ]
 
 
-        # first plot shown percentage of hits on each sequence 
+        # first plot shown percentage of hits on each sequence
         import seaborn as sns
         sns.violinplot(data=df1, orient='h')
         xlabel("Ribosomal content (%)", fontsize=16)
@@ -240,7 +276,7 @@ rule plotting:
         tight_layout()
         savefig(output['png'])
 
-        # now, we shown the RPKM (read count normalised by gene length)
+        # now, we show the RPKM (read count normalised by gene length)
 
         f = FastA(input['fasta_file'])
         df = df.T
@@ -254,26 +290,34 @@ rule plotting:
         savefig(output['rpkm'])
 
 
-
-# ========================================================== BAM indexing
+# ========================================== samtools stats (for bwa multiqc)
 #
-rule bam_indexing:
-    input:
-        "{sample}/bowtie1/{sample}.sorted.bam"
-    output:
-        "{sample}/bowtie1/{sample}.sorted.bam.bai"
-    container:
-        config['apptainers']['sequana_ribofinder']
-    shell:
-        """
-        bamtools index -in {input}
-        """
+# bwa itself produces no structured stats usable by multiqc. To expose
+# mapped/unmapped percentages in both multiqc and the HTML summary, we feed
+# multiqc the output of `samtools stats` on the sorted BAM file.
+if aligner == "bwa":
+    rule samtools_stats:
+        input:
+            bam=mapper_bam_pattern
+        output:
+            "{sample}/samtools_stats/{sample}.stats.txt"
+        log:
+            "{sample}/samtools_stats/{sample}.log"
+        container:
+            config['apptainers']['sequana_tools']
+        shell:
+            """
+            samtools stats {input.bam} > {output} 2> {log}
+            """
 
 
 # ========================================================== multiqc
 #
-sequana_multiqc_input = expand("{sample}/bowtie1/{sample}.sorted.bam.bai", sample=sorted(manager.samples))
-sequana_multiqc_input += ["logs/fix_bowtie1_log/done"]
+sequana_multiqc_input = expand(mapper_log_pattern, sample=sorted(manager.samples))
+if aligner == "bwa":
+    sequana_multiqc_input += expand(
+        "{sample}/samtools_stats/{sample}.stats.txt", sample=sorted(manager.samples)
+    )
 
 
 rule multiqc:
@@ -290,20 +334,20 @@ rule multiqc:
         "multiqc/multiqc.log"
     container:
         config["apptainers"]["multiqc"]
-    wrapper:
-       f"{manager.wrappers}/wrappers/multiqc"
+    shell:
+        manager.get_shell("multiqc/run", "v1")
 
 
 # ========================================================== rulegraph
 rule rulegraph:
     input: str(manager.snakefile)
     output:
-        svg = "rulegraph/rulegraph.dot"
+        temp("rulegraph/rulegraph.dot")
     params:
         mapper = {"multiqc": "../multiqc/multiqc_report.html"},
         configname = "config.yaml"
-    wrapper:
-        f"{manager.wrappers}/wrappers/rulegraph"
+    run:
+        manager.get_run("rulegraph/run", "v1")(input, output, params)
 
 
 rule dot2svg:
@@ -314,13 +358,13 @@ rule dot2svg:
     container:
         config['apptainers']['graphviz']
     shell:
-        """dot -Tsvg {input} -o {output}"""
+        manager.get_shell("graphviz/dot2svg", "v1")
 
 
 
 
 # Those rules takes a couple of seconds so no need for a cluster
-localrules:  rulegraph
+localrules: rulegraph, dot2svg
 
 
 onsuccess:
@@ -338,18 +382,128 @@ onsuccess:
             "pipeline_version": ribofinder.version
             }
 
-    HTML = """<h2>Summary</h2><p>Please see the ribosomal rates here below 
-        (a similar plot from multiqc is <a href="multiqc/multiqc_report.html">here</a> ) </p>"""
+    aligner = config["general"]["aligner"]
 
-    from sequana.multiqc.plots import Bowtie1Reader
-    if os.path.exists("multiqc/multiqc_report_data/multiqc_bowtie1.txt"):
-        br = Bowtie1Reader("multiqc/multiqc_report_data/multiqc_bowtie1.txt")
-        fig = br.plot_bar(html_code=True)
-        from plotly import offline
-        HTML += offline.plot(fig, output_type="div", include_plotlyjs=True)
+    HTML = f"""
+<h2>Overview</h2>
+<p>
+The <b>ribofinder</b> pipeline estimates the proportion of ribosomal RNA
+(rRNA) contamination in a set of sequencing samples. This information is
+useful as a QC step for RNA-seq experiments: after rRNA depletion (e.g.
+Ribo-Zero) or poly-A selection, the residual rRNA content is expected to
+be low; a high value typically indicates that the library preparation
+failed or that the depletion protocol did not work as intended.
+</p>
+<h3>How it works</h3>
+<ol>
+  <li>A reference fasta of rRNA sequences is prepared: either provided
+      directly via <code>--rRNA-file</code>, or extracted on-the-fly from a
+      GFF/GenBank annotation by selecting the
+      <code>{config['general']['rRNA_feature']}</code> feature.</li>
+  <li>Each sample is decompressed (only R1 is kept for paired-end data,
+      to avoid low mapping rates on short, adapter-contaminated mates).</li>
+  <li>Reads are mapped onto the rRNA reference with
+      <b>{aligner}</b>, producing a sorted and indexed BAM file per
+      sample.</li>
+  <li>Mapping statistics and per-sequence hit counts are aggregated in a
+      <a href="multiqc/multiqc_report.html">MultiQC report</a> and in the
+      summary plots below.</li>
+</ol>
 
-    HTML += '<p>Here below, you can see how the ribosomal hits are distributed amongst the sequences (note that this is not normalised against the lenth of each sequence)</p> <img src="outputs/proportions.png"></img>'
-    HTML += '<p>Here below, you can see how the reads are distributed amongst the sequences normalised by their  lengths (RPKM=reads per kilo base)</p> <img src="outputs/RPKM.png"></img>'
+<h2>Mapping rate: how much of each sample is rRNA?</h2>
+<p>
+This first plot shows, for every sample, the fraction of reads that
+aligned to the rRNA reference. <b>Higher values mean more ribosomal
+contamination</b>. As a rule of thumb, values &lt; 10 % are expected
+after a successful rRNA depletion, whereas values &gt; 20 % suggest that
+the depletion did not work well and that a large fraction of the
+sequencing budget was spent on ribosomal reads. The equivalent plot from
+multiqc is also available in the
+<a href="multiqc/multiqc_report.html">multiqc report</a>.
+</p>
+"""
+
+    from plotly import offline
+
+    try:
+        if aligner == "bowtie2":
+            from sequana.multiqc.plots import Bowtie2
+
+            # multiqc writes either a combined table or a per-mode plot table
+            # depending on the version and on whether samples are SE or PE.
+            candidates = [
+                "multiqc/multiqc_data/mqc_bowtie2_se_plot_1.txt",
+                "multiqc/multiqc_data/mqc_bowtie2_pe_plot_1.txt",
+                "multiqc/multiqc_data/multiqc_bowtie2.txt",
+                "multiqc/multiqc_report_data/mqc_bowtie2_se_plot_1.txt",
+                "multiqc/multiqc_report_data/mqc_bowtie2_pe_plot_1.txt",
+                "multiqc/multiqc_report_data/multiqc_bowtie2.txt",
+            ]
+            filename = next((f for f in candidates if os.path.exists(f)), None)
+            if filename:
+                br = Bowtie2(filename)
+                fig = br.plot(html_code=True)
+                HTML += offline.plot(fig, output_type="div", include_plotlyjs=True)
+        elif aligner == "bwa":
+            # bwa has no dedicated multiqc module, so build the mapping-rate
+            # bar plot from the samtools_stats multiqc output.
+            import pandas as pd
+            import plotly.graph_objects as go
+
+            candidates = [
+                "multiqc/multiqc_data/multiqc_samtools_stats.txt",
+                "multiqc/multiqc_report_data/multiqc_samtools_stats.txt",
+            ]
+            filename = next((f for f in candidates if os.path.exists(f)), None)
+            if filename:
+                df = pd.read_csv(filename, sep="\t")
+                mapped_pct = df["reads_mapped"] / df["raw_total_sequences"] * 100
+                unmapped_pct = 100 - mapped_pct
+                fig = go.Figure()
+                fig.add_trace(go.Bar(
+                    y=df["Sample"], x=mapped_pct, name="Aligned (rRNA)",
+                    marker_color="#389f1f", orientation="h",
+                ))
+                fig.add_trace(go.Bar(
+                    y=df["Sample"], x=unmapped_pct, name="Not aligned",
+                    marker_color="#120946", orientation="h",
+                ))
+                fig.update_layout(
+                    barmode="stack", xaxis_tickangle=-45, height=400,
+                    title="Mapping on ribosomal/contaminant reference",
+                    xaxis_title="Percentage of reads",
+                )
+                HTML += offline.plot(fig, output_type="div", include_plotlyjs=True)
+    except Exception as err:
+        print(f"WARNING: could not add mapping rate plot to the HTML report: {err}")
+
+    HTML += """
+<h2>Per-sequence distribution of ribosomal hits</h2>
+<p>
+The rRNA reference may contain several sequences (e.g. 5S, 16S, 23S for
+bacteria, or 18S/28S for eukaryotes). The violin plot below shows, for
+every rRNA sequence (y-axis), the distribution across all samples of the
+percentage of total reads that aligned to it (x-axis). Each violin
+therefore summarises how much that specific ribosomal sequence
+contributes to the overall rRNA signal. <b>This is a raw count and is
+not normalised against the length of each sequence</b>, so longer
+sequences naturally tend to collect more reads.
+</p>
+<img src="outputs/proportions.png" style="max-width:95%;"></img>
+
+<h2>Per-sequence RPKM distribution</h2>
+<p>
+The same data is shown below, but normalised by the length of each
+reference sequence (RPKM = Reads Per Kilobase). This makes the
+contributions of short and long rRNA sequences directly comparable: for
+instance, a short 5S rRNA and a long 23S rRNA that are equally abundant
+in the sample will produce similar RPKM values, while the raw count plot
+above would make the 23S look dominant. Use this plot to identify which
+specific rRNA sequences are over- or under-represented relative to what
+you would expect.
+</p>
+<img src="outputs/RPKM.png" style="max-width:95%;"></img>
+"""
 
     # Now the final report. add the original command in the HTML report
     try:
