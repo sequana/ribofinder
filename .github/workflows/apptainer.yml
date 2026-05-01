@@ -37,11 +37,19 @@ jobs:
 
     # Install Apptainer from GitHub releases (avoids flaky Launchpad PPA)
     - name: Install Apptainer
+      env:
+        GH_TOKEN: ${{ github.token }}
       run: |
-        APPTAINER_VERSION=$(curl -s https://api.github.com/repos/apptainer/apptainer/releases/latest \
+        APPTAINER_VERSION=$(curl -s -H "Authorization: Bearer ${GH_TOKEN}" \
+          https://api.github.com/repos/apptainer/apptainer/releases/latest \
           | grep '"tag_name"' | cut -d'"' -f4 | sed 's/v//')
+        if [ -z "${APPTAINER_VERSION}" ]; then
+          echo "ERROR: Could not determine Apptainer version" >&2
+          exit 1
+        fi
         wget -q "https://github.com/apptainer/apptainer/releases/download/v${APPTAINER_VERSION}/apptainer_${APPTAINER_VERSION}_amd64.deb"
         sudo apt-get install -y "./apptainer_${APPTAINER_VERSION}_amd64.deb"
+        rm -f "./apptainer_${APPTAINER_VERSION}_amd64.deb"
         apptainer --version
 
     # Install graphviz
